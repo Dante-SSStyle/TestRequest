@@ -1,15 +1,45 @@
-from api.api import MyApi
-from api import functions
+from api.api import Articles, Tags, Content, Save
 
-# MyApi.art_published('heh',1)
-# MyApi.art_create('heh', 'Hello There Again!', 'Hello World 2', '', '')
-# MyApi.art_user_unpub('heh')
-# MyApi.art_update('heh', 980916)
-# MyApi.tags_followed('heh')
-# MyApi.profile_images('heh', 'diogoosorio')
-# MyApi.art_user_all('heh')
-# MyApi.art_video('heh')
+heh = Articles()
+hehe = Tags()
 
-# functions.save_articles()
-# functions.save_photos('dantessstyle')
-# functions.save_video()
+#  Методы статей:
+# Получает список всех статей
+# Articles.published(1)
+
+# Создаёт статью
+# Articles.create('heh', 'Hello There Again!', 'Hello World 2', '', '')
+
+# Изменяет созданную статью
+# Articles.update(heh, 980916)
+
+# Вывод своих неопубликованных статей
+# Articles.user_unpub(heh)
+
+# Вывод всех своих статей
+# Articles.user_all(heh)
+
+#   Методы тегов:
+# Вывод своих фоллоу тегов
+# Tags.followed(hehe)
+
+# Вывод всех возможных тегов
+# Tags.tags()
+
+#   Методы фото и видео:
+# Вывод информации об изображениях пользователя по юзернейму
+# Content.images('diogoosorio')
+
+# Вывод списка статей с видео
+# Content.videos()
+
+#   Методы сохранения:
+
+# Сохраняет в отдельный файл список своих статей
+# Save.articles(heh)
+
+# Скачивает фотографии профиля по юзернейму
+# Save.photos(heh, 'dantessstyle')
+
+# Скачивает видео со статьи
+# Save.video(heh)
