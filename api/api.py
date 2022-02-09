@@ -4,11 +4,19 @@ from pprint import pprint
 import os
 
 
+class ApiException(Exception):
+    pass
+
+
+class DevToException(Exception):
+    pass
+
+
 class Checker:
 
     def __init__(self):
 
-        self._check_dir = ['articles/', 'photos/', 'videos/']
+        self._check_dirlist = ['articles/', 'photos/', 'videos/']
 
         if not os.path.exists('api_key.txt'):
             raise ApiException('Нужно создать файл с api-ключём')
@@ -18,75 +26,71 @@ class Checker:
 
         self.header = {'api-key': self.key}
 
-    def errors(self):
-        if not self.status_code == 200:
-            if self.status_code == 400:
-                raise ConnectionError('Неверный запрос!')
-            elif self.status_code == 401:
-                raise ConnectionError('Требуется авторизация!')
-            elif self.status_code == 403:
-                raise ConnectionError('Запрещённый запрос!')
-            elif self.status_code == 404:
-                raise ConnectionError('Ресурс не найден!')
-            elif self.status_code == 422:
-                raise ConnectionError('Параметр отсутствует или его значение пустое!')
-            elif self.status_code == 429:
-                raise ConnectionError('Превышен лимит запросов, попробуйте ещё раз через 30 сек.!')
+    def _errors(self, r):
+        if not r.status_code == 200:
+            if r.status_code == 400:
+                raise DevToException('Неверный запрос!')
+            elif r.status_code == 401:
+                raise DevToException('Требуется авторизация!')
+            elif r.status_code == 403:
+                raise DevToException('Запрещённый запрос!')
+            elif r.status_code == 404:
+                raise DevToException('Ресурс не найден!')
+            elif r.status_code == 422:
+                raise DevToException('Параметр отсутствует или его значение пустое!')
+            elif r.status_code == 429:
+                raise DevToException('Превышен лимит запросов, попробуйте ещё раз через 30 сек.!')
             else:
-                raise ConnectionError('Что-то пошло не так!')
+                raise DevToException('Что-то пошло не так!')
 
 
 class Articles(Checker):
 
-    @staticmethod
-    def published(per_page=10, page=1):
+    def published(self, per_page=10, page=1):
         r = requests.get(f'https://dev.to/api/articles?per_page={per_page}&page={page}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
     def user(self, per_page=5, page=1):
         r = requests.get(f'https://dev.to/api/articles/me?per_page={per_page}&page={page}', headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
     def user_pub(self, per_page=5, page=1):
         r = requests.get(f'https://dev.to/api/articles/me/published?per_page={per_page}&page={page}', headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
     def user_unpub(self, per_page=5, page=1):
         r = requests.get(f'https://dev.to/api/articles/me/unpublished?per_page={per_page}&page={page}', headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
     def user_all(self, per_page=5, page=1):
         r = requests.get(f'https://dev.to/api/articles/me/all?per_page={per_page}&page={page}', headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
-    @staticmethod
-    def sorted(per_page=10, page=1):
+    def sorted(self, per_page=10, page=1):
         r = requests.get(f'https://dev.to/api/articles/latest?per_page={per_page}&page={page}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
-    @staticmethod
-    def userid(userid):
+    def userid(self, userid):
         r = requests.get(f'https://dev.to/api/articles/{userid}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
-    @staticmethod
-    def path(username='devteam', slug='for-empowering-community-2k6h'):
+    def path(self, username='devteam', slug='for-empowering-community-2k6h'):
         r = requests.get(f'https://dev.to/api/articles/{username}/{slug}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
@@ -100,7 +104,7 @@ class Articles(Checker):
                 "series": series}
         }
         r = requests.post(f'https://dev.to/api/articles', json=payload, headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         print('Статья создана!')
         return r
 
@@ -114,54 +118,52 @@ class Articles(Checker):
                 "series": series}
         }
         r = requests.put(f'https://dev.to/api/articles/{userid}', json=payload, headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         print('Статья обновлена!')
         return r
 
 
 class Tags(Checker):
 
-    @staticmethod
-    def tags(per_page=10, page=1):
+    def tags(self, per_page=10, page=1):
         r = requests.get(f'https://dev.to/api/tags?per_page={per_page}&page={page}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
     def followed(self):
         r = requests.get(f'https://dev.to/api/follows/tags', headers=self.header)
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
 
 class Content(Checker):
 
-    @staticmethod
-    def images(username):
+    def images(self, username):
         r = requests.get(f'https://dev.to/api/profile_images/{username}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
-    @staticmethod
-    def videos(per_page=10, page=1):
+    def videos(self, per_page=10, page=1):
         r = requests.get(f'https://dev.to/api/videos?per_page={per_page}&page={page}')
-        Checker.errors(r)
+        self._errors(r)
         pprint(r.json())
         return r
 
 
-class Save(Articles, Content):
+class Save(Checker):
 
     def _check_dir(self):
-        for i in self._check_dir:
+        for i in self._check_dirlist:
             if not os.path.exists(i):
                 os.mkdir(i)
 
     def articles(self):
-        Save._check_dir(self)
-        r = Articles.user_all(self)
+        arti = Articles()
+        self._check_dir()
+        r = arti.user_all()
         json_out = []
         am = 0
         for i in r.json():
@@ -180,8 +182,9 @@ class Save(Articles, Content):
             print('Сохранено статей: ', am)
 
     def photos(self, username):
-        Save._check_dir(self)
-        r = Content.images(username)
+        cont = Content()
+        self._check_dir()
+        r = cont.images(username)
         pic1 = requests.get((r.json()['profile_image']))
         pic2 = requests.get((r.json()['profile_image_90']))
         with open('photos/picture1.jpg', 'wb') as file:
@@ -192,8 +195,9 @@ class Save(Articles, Content):
             print('Данные сохранены')
 
     def video(self):
-        Save._check_dir(self)
-        r = Content.videos(1)
+        cont = Content()
+        self._check_dir()
+        r = cont.videos(1)
         head = {"Referer": (r.json()[0]['video_source_url'])}
         vid = requests.get((r.json()[0]['video_source_url']), headers=head)
         with open('videos/video', 'wb') as file:

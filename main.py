@@ -1,45 +1,47 @@
-from api.api import Articles, Tags, Content, Save
+from api import Articles, Tags, Content, Save
 
-heh = Articles()
-hehe = Tags()
+art = Articles()
+tag = Tags()
+save = Save()
+cont = Content()
 
 #  Методы статей:
 # Получает список всех статей
-# Articles.published(1)
+# art.published(1)
 
 # Создаёт статью
-# Articles.create('heh', 'Hello There Again!', 'Hello World 2', '', '')
+# art.create('Hello There Again!', 'Hello World 2', '', '')
 
 # Изменяет созданную статью
-# Articles.update(heh, 980916)
+# art.update(980916)
 
 # Вывод своих неопубликованных статей
-# Articles.user_unpub(heh)
+# art.user_unpub()
 
 # Вывод всех своих статей
-# Articles.user_all(heh)
+# art.user_all()
 
 #   Методы тегов:
 # Вывод своих фоллоу тегов
-# Tags.followed(hehe)
+# tag.followed()
 
 # Вывод всех возможных тегов
-# Tags.tags()
+# tag.tags()
 
 #   Методы фото и видео:
 # Вывод информации об изображениях пользователя по юзернейму
-# Content.images('diogoosorio')
+# cont.images('diogoosorio')
 
 # Вывод списка статей с видео
-# Content.videos()
+# cont.videos()
 
 #   Методы сохранения:
 
 # Сохраняет в отдельный файл список своих статей
-# Save.articles(heh)
+# save.articles()
 
 # Скачивает фотографии профиля по юзернейму
-# Save.photos(heh, 'dantessstyle')
+# save.photos('dantessstyle')
 
 # Скачивает видео со статьи
-# Save.video(heh)
+# save.video()
