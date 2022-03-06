@@ -14,6 +14,7 @@ class AbstractModel:
         self._check_dirlist = ('articles/', 'photos/', 'videos/')
         self._available_request_path = ('articles/', 'photos/', 'videos/')
 
+        # Проверяем наличие токена авторизации в файле
         if not os.path.exists('api/api_key.txt'):
             raise TestRequestException(400, 'Нужно создать файл с api-ключём')
 
@@ -27,25 +28,29 @@ class AbstractModel:
             if not os.path.exists(i):
                 os.mkdir(i)
 
-    def _pics_dir_exist(self, username):
-        if not os.path.exists(f'photos/{username}'):
-            os.mkdir(f'photos/{username}')
+    def _pics_dir_exist(self, folder_name):
+        if not os.path.exists(f'photos/{folder_name}'):
+            os.mkdir(f'photos/{folder_name}')
 
     def _errors(self, r):
-        if not r.status_code == 200:
-            if r.status_code == 400:
-                raise DevToException(400, 'Неверный запрос!')
-            if r.status_code == 401:
-                raise DevToException(401, 'Требуется авторизация!')
-            if r.status_code == 403:
-                raise DevToException(403, 'Запрещённый запрос!')
-            if r.status_code == 404:
-                raise DevToException(404, 'Ресурс не найден!')
-            if r.status_code == 422:
-                raise DevToException(422, 'Параметр отсутствует или его значение пустое!')
-            if r.status_code == 429:
-                raise DevToException(429, 'Превышен лимит запросов, попробуйте ещё раз через 30 сек.!')
-            raise DevToException(400, 'Что-то пошло не так!')
+        code = r.status_code
+        if not code == 200:
+            return
+
+        if code == 400:
+            raise DevToException(400, 'Неверный запрос!')
+        if code== 401:
+            raise DevToException(401, 'Требуется авторизация!')
+        if code == 403:
+            raise DevToException(403, 'Запрещённый запрос!')
+        if code == 404:
+            raise DevToException(404, 'Ресурс не найден!')
+        if code == 422:
+            raise DevToException(422, 'Параметр отсутствует или его значение пустое!')
+        if code == 429:
+            raise DevToException(429, 'Превышен лимит запросов, попробуйте ещё раз через 30 сек.!')
+
+        raise DevToException(400, 'Что-то пошло не так!')
 
 
 class Articles(AbstractModel):
@@ -96,7 +101,7 @@ class Articles(AbstractModel):
         self._errors(r)
         return r
 
-    def userid(self, userid):
+    def user_id(self, userid):
         r = self._make_get_request(path=f'articles/{userid}', need_header=False)
         self._errors(r)
         return r
@@ -147,28 +152,18 @@ class Tags(AbstractModel):
         return r
 
 
-class Content(AbstractModel):
-    """ Получение изображений и видео"""
-
-    def images(self, username):
-        r = requests.get(f'{self._base_url}/profile_images/{username}')
-        self._errors(r)
-        return r
-
-    def videos(self, per_page=10, page=1):
-        r = requests.get(f'{self._base_url}/videos?per_page={per_page}&page={page}')
-        self._errors(r)
-        return r
-
-
 class Save(AbstractModel):
     """ Сохранение статей, изображений, видео"""
 
+    def __init__(self):
+        super().__init__()
+        self._files_dir_exist()
+
     def articles(self):
         arti = Articles()
-        self._files_dir_exist()
         r = arti.user_all()
         self._errors(r)
+
         json_out = []
         for i in r.json():
             form = {
@@ -184,25 +179,28 @@ class Save(AbstractModel):
             json.dump(json_out, file, indent=2)
 
     def photos(self, username):
-        cont = Content()
         self._pics_dir_exist(username)
-        r = cont.images(username)
+
+        r = requests.get(f'{self._base_url}/profile_images/{username}')
         self._errors(r)
-        fullsize_pic = requests.get((r.json()['profile_image']))
-        self._errors(fullsize_pic)
+
+        full_size_pic = requests.get((r.json()['profile_image']))
         preview_pic = requests.get((r.json()['profile_image_90']))
+        self._errors(full_size_pic)
         self._errors(preview_pic)
-        with open(f'photos/{username}/picture1.jpg', 'wb') as file:
-            file.write(fullsize_pic.content)
-        with open(f'photos/{username}/picture2.jpg', 'wb') as file:
+
+        with open(f'photos/{username}/full_size_photo.jpg', 'wb') as file:
+            file.write(full_size_pic.content)
+        with open(f'photos/{username}/preview_photo.jpg', 'wb') as file:
             file.write(preview_pic.content)
 
-    def video(self):
-        cont = Content()
-        self._files_dir_exist()
-        r = cont.videos(1)
+    def video(self, per_page=1, page=1):
+
+        r = requests.get(f'{self._base_url}/videos?per_page={per_page}&page={page}')
         self._errors(r)
-        head = {"Referer": (r.json()[0]['video_source_url'])}
-        vid = requests.get((r.json()[0]['video_source_url']), headers=head)
+
+        self._errors(r)
+        video_src = r.json()[0]['video_source_url']
+        vid = requests.get(video_src, headers={'Referer': video_src})
         with open('videos/video', 'wb') as file:
             file.write(vid.content)
