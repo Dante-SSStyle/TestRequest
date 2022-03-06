@@ -1,4 +1,4 @@
 .idea
 __pycache__/
-api_key.txt
+api/api_key.txt
 venv/
