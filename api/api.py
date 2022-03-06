@@ -1,6 +1,5 @@
 import requests
 import json
-from pprint import pprint
 import os
 from .exceptions import DevToException, TestRequestException
 
@@ -8,28 +7,29 @@ from .exceptions import DevToException, TestRequestException
 class AbstractModel:
     """ Базовый класс с проверокой данных"""
 
-    _base_url = 'https://dev.to/api/articles'
+    _base_url = 'https://dev.to/api'
 
     def __init__(self):
 
         self._check_dirlist = ('articles/', 'photos/', 'videos/')
         self._available_request_path = ('articles/', 'photos/', 'videos/')
 
-        if not os.path.exists('api_key.txt'):
+        if not os.path.exists('api/api_key.txt'):
             raise TestRequestException(400, 'Нужно создать файл с api-ключём')
 
-        with open('api_key.txt', 'r') as f:
+        with open('api/api_key.txt', 'r') as f:
             self.key = f.readline().strip()
 
         self.header = {'api-key': self.key}
-
-    def _path_request_exist(self):
-        pass
 
     def _files_dir_exist(self):
         for i in self._check_dirlist:
             if not os.path.exists(i):
                 os.mkdir(i)
+
+    def _pics_dir_exist(self, username):
+        if not os.path.exists(f'photos/{username}'):
+            os.mkdir(f'photos/{username}')
 
     def _errors(self, r):
         if not r.status_code == 200:
@@ -51,6 +51,10 @@ class AbstractModel:
 class Articles(AbstractModel):
     """ Получеине статей"""
 
+    def __init__(self):
+        super().__init__()
+        self._base_url = f'{self._base_url}/articles'
+
     def _make_get_request(self, path, per_page=None, page=None, need_header=True):
 
         get_params = dict()
@@ -60,6 +64,11 @@ class Articles(AbstractModel):
 
         request_url = f'{self._base_url}/{path}'
         r = requests.get(request_url, headers=request_header, params=get_params)
+        return r
+
+    def published(self, per_page=10, page=1):
+        r = self._make_get_request(path='articles', per_page=per_page, page=page)
+        self._errors(r)
         return r
 
     def user(self, per_page=5, page=1):
@@ -82,11 +91,6 @@ class Articles(AbstractModel):
         self._errors(r)
         return r
 
-    def published(self, per_page=10, page=1):
-        r = self._make_get_request(path='articles', per_page=per_page, page=page)
-        self._errors(r)
-        return r
-
     def sorted(self, per_page=10, page=1):
         r = self._make_get_request(path='articles/latest', per_page=per_page, page=page)
         self._errors(r)
@@ -102,7 +106,7 @@ class Articles(AbstractModel):
         self._errors(r)
         return r
 
-    def create(self, body,  title='unnamed', series='', tags='', pub=False):
+    def create(self, body, title='unnamed', series='', tags='', pub=False):
         payload = {
             "article": {
                 "title": title,
@@ -115,7 +119,7 @@ class Articles(AbstractModel):
         self._errors(r)
         return r
 
-    def update(self, userid, body='',  title='', series='', tags='', pub=''):
+    def update(self, userid, body='', title='', series='', tags='', pub=''):
         payload = {
             "article": {
                 "title": title,
@@ -130,7 +134,7 @@ class Articles(AbstractModel):
 
 
 class Tags(AbstractModel):
-    """ Получеине тегов"""
+    """ Получение тегов"""
 
     def tags(self, per_page=10, page=1):
         r = requests.get(f'{self._base_url}/tags?per_page={per_page}&page={page}')
@@ -144,28 +148,28 @@ class Tags(AbstractModel):
 
 
 class Content(AbstractModel):
+    """ Получение изображений и видео"""
 
     def images(self, username):
-        r = requests.get(f'https://dev.to/api/profile_images/{username}')
+        r = requests.get(f'{self._base_url}/profile_images/{username}')
         self._errors(r)
-        pprint(r.json())
         return r
 
     def videos(self, per_page=10, page=1):
-        r = requests.get(f'https://dev.to/api/videos?per_page={per_page}&page={page}')
+        r = requests.get(f'{self._base_url}/videos?per_page={per_page}&page={page}')
         self._errors(r)
-        pprint(r.json())
         return r
 
 
 class Save(AbstractModel):
+    """ Сохранение статей, изображений, видео"""
 
     def articles(self):
         arti = Articles()
         self._files_dir_exist()
         r = arti.user_all()
+        self._errors(r)
         json_out = []
-        am = 0
         for i in r.json():
             form = {
                 'title': (i['title']),
@@ -175,31 +179,30 @@ class Save(AbstractModel):
                 'url': (i['url'])
             }
             json_out.append(form)
-            am += 1
 
         with open('articles/my_art.json', 'w') as file:
             json.dump(json_out, file, indent=2)
-            print('Сохранено статей: ', am)
 
     def photos(self, username):
         cont = Content()
-        self._files_dir_exist()
+        self._pics_dir_exist(username)
         r = cont.images(username)
-        pic1 = requests.get((r.json()['profile_image']))
-        pic2 = requests.get((r.json()['profile_image_90']))
-        with open('photos/picture1.jpg', 'wb') as file:
-            file.write(pic1.content)
-            print('Данные сохранены')
-        with open('photos/picture2.jpg', 'wb') as file:
-            file.write(pic2.content)
-            print('Данные сохранены')
+        self._errors(r)
+        fullsize_pic = requests.get((r.json()['profile_image']))
+        self._errors(fullsize_pic)
+        preview_pic = requests.get((r.json()['profile_image_90']))
+        self._errors(preview_pic)
+        with open(f'photos/{username}/picture1.jpg', 'wb') as file:
+            file.write(fullsize_pic.content)
+        with open(f'photos/{username}/picture2.jpg', 'wb') as file:
+            file.write(preview_pic.content)
 
     def video(self):
         cont = Content()
         self._files_dir_exist()
         r = cont.videos(1)
+        self._errors(r)
         head = {"Referer": (r.json()[0]['video_source_url'])}
         vid = requests.get((r.json()[0]['video_source_url']), headers=head)
         with open('videos/video', 'wb') as file:
             file.write(vid.content)
-            print('Данные сохранены')

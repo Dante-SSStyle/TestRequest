@@ -3,8 +3,6 @@ from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# todo проверить user_id - int or str
-# todo поправить наименования методов
 
 app = FastAPI(
     title='Dev.to wrapper',
@@ -24,10 +22,12 @@ app.add_middleware(
 
 tags_router = APIRouter()
 articles_router = APIRouter()
+content_router = APIRouter()
+save_router = APIRouter()
 
 app.include_router(
     tags_router,
-    prefix='tag',
+    prefix='/tag',
     tags=['tag'],
     dependencies=[]
 )
@@ -39,43 +39,57 @@ app.include_router(
     dependencies=[]
 )
 
+app.include_router(
+    content_router,
+    prefix='/content',
+    tags=['contents'],
+    dependencies=[]
+)
 
-@articles_router.get('mine_articles/published')
+app.include_router(
+    save_router,
+    prefix='/save',
+    tags=['save'],
+    dependencies=[]
+)
+
+
+@articles_router.get('mine_articles/published', description='Опубликованные статьи')
 def m_published():
     art = Articles()
     res = art.user_pub()
     return JSONResponse(res)
 
 
-@articles_router.get('mine_articles/unpublished')
+@articles_router.get('mine_articles/unpublished', description='Неопубликованные статьи')
 def m_unpublished():
     art = Articles()
     res = art.user_unpub()
     return JSONResponse(res)
 
 
-@articles_router.get('all_articles/latest')
+@articles_router.get('all_articles/latest', description='Статьи, сортированные по дате создания')
 def all_articles():
     art = Articles()
     res = art.sorted()
     return JSONResponse(res)
 
 
-@articles_router.get('all_articles/by_user')
-def all_articles(user_id: int):
+@articles_router.get('all_articles/by_id', description='Статья по id')
+def article_id(user_id: int):
     art = Articles()
     res = art.userid(user_id)
     return JSONResponse(res)
 
 
-@articles_router.post('/create')
+@articles_router.post('/create', description='Создание статьи')
 def post_article(text: str, title: str = None, series: str = None, tags: str = None, publish: bool = None):
     art = Articles()
     res = art.create(text, title, series, tags, publish)
     return JSONResponse("Статья успешно создана!")
 
 
-@articles_router.post('/update')
+@articles_router.post('/update', description='Обновление статьи')
 def update_article(user_id: int, text: str, title: str = None, series: str = None, tags: str = None,
                    publish: bool = None):
     art = Articles()
@@ -95,3 +109,38 @@ def get_mine_tags():
     tg = Tags()
     res = tg.followed()
     return JSONResponse(res)
+
+
+@content_router.get('/images', description='Изображения пользователя')
+def get_user_images(username: str):
+    cnt = Content()
+    res = cnt.images(username)
+    return JSONResponse(res)
+
+
+@content_router.get('/videos', description='Cписок видео')
+def get_videos():
+    cnt = Content()
+    res = cnt.videos()
+    return JSONResponse(res)
+
+
+@save_router.get('/save_art', description='Сохранение статей')
+def save_art():
+    sv = Save()
+    res = sv.articles()
+    return JSONResponse('Статьи сохранены!')
+
+
+@save_router.get('/save_vid', description='Сохранение видео')
+def save_video():
+    sv = Save()
+    res = sv.video()
+    return JSONResponse('Данные сохранены')
+
+
+@save_router.get('/save_pic', description='Сохранение изображений')
+def save_pics(username):
+    sv = Save()
+    res = sv.photos(username)
+    return JSONResponse('Данные сохранены')
